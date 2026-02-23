@@ -9,6 +9,7 @@ import {
   databaseConfig,
   mailConfig,
 } from './core/config';
+import { NewsModule } from './news/news.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import {
     }),
     PricesModule,
     AgentsModule,
+    NewsModule,
   ],
 })
 export class AppModule {}
