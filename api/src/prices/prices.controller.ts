@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { PricesService } from './prices.service';
 import { MarketPair } from './prices.api.types';
+import type { YahooInterval, YahooRange } from './yahoo-finance.api';
 
 @Controller('prices')
 export class PricesController {
@@ -26,6 +27,19 @@ export class PricesController {
       pair as MarketPair,
       interval || '1min',
       outputsize || 200,
+    );
+  }
+
+  @Get('history/yahoo')
+  async fetchYahooHistory(
+    @Query('symbol') symbol: string,
+    @Query('interval') interval: string,
+    @Query('range') range: string,
+  ) {
+    return await this.pricesService.fetchYahooHistory(
+      symbol,
+      interval as YahooInterval,
+      range as YahooRange,
     );
   }
 }
