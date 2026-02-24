@@ -11,8 +11,21 @@ export class PricesController {
     return await this.pricesService.fetchTick(pair as MarketPair);
   }
 
+  @Get('tick')
+  async fetchAuxTick() {
+    return await this.pricesService.auxTick();
+  }
+
   @Get('history')
-  async fetchHistory(@Query('pair') pair: string) {
-    return await this.pricesService.fetchHistory(pair as MarketPair);
+  async fetchHistory(
+    @Query('pair') pair: string,
+    @Query('interval') interval: string,
+    @Query('outputsize') outputsize: number,
+  ) {
+    return await this.pricesService.fetchHistory(
+      pair as MarketPair,
+      interval || '1min',
+      outputsize || 200,
+    );
   }
 }

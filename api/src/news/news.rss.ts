@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 
 import { RSS_FEEDS } from './news.constant';
 import { analyzeSentiment, NewsImpactLevel } from './news.sentiment';
-import { MarketPair } from 'src/prices-api/prices.api.types';
+import { MarketPair } from 'src/prices/prices.api.types';
 import type { IRSSFeedItem, RSSFeedResponse } from './utils/rss';
 import { isNewsRelevantForSymbol } from './utils/rss';
 

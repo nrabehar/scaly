@@ -1,4 +1,4 @@
-import { MarketPair } from 'src/prices-api/prices.api.types';
+import { MarketPair } from 'src/prices/prices.api.types';
 import { decodeXmlValue, extractXmlTag } from './xml';
 import { NewsImpactLevel } from '../news.sentiment';
 

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NewsRss, NewsItem } from './news.rss';
-import { MarketPair } from 'src/prices-api/prices.api.types';
+import { MarketPair } from 'src/prices/prices.api.types';
 
 @Injectable()
 export class NewsService {

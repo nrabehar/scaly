@@ -1,6 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { NewsService } from './news.service';
-import type { MarketPair } from 'src/prices-api/prices.api.types';
+import type { MarketPair } from 'src/prices/prices.api.types';
 
 @Controller('news')
 export class NewsController {

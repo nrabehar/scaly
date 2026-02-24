@@ -1,4 +1,4 @@
-import type { MarketPair } from 'src/prices-api/prices.api.types';
+import type { MarketPair } from 'src/prices/prices.api.types';
 
 export const BULLISH_NEWS_KEYWORDS = [
   'rally',
