@@ -11,7 +11,10 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main"
+    "start:prod": "node dist/main",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:migrate": "prisma migrate dev --name init --schema prisma/schema.prisma",
+    "prisma:studio": "prisma studio --schema prisma/schema.prisma"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
@@ -20,10 +23,18 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/mapped-types": "^2.1.0",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-socket.io": "^11.1.14",
+    "@nestjs/schedule": "^6.1.1",
+    "@nestjs/websockets": "^11.1.14",
+    "@prisma/adapter-better-sqlite3": "^7.4.1",
+    "@prisma/client": "^7.4.1",
     "axios": "^1.13.5",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.4",
     "node-fetch": "^3.3.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.8.3",
     "yahoo-finance2": "^3.13.0"
   },
   "devDependencies": {
@@ -34,6 +45,7 @@
     "@types/node": "^22.10.7",
     "globals": "^16.0.0",
     "prettier": "^3.4.2",
+    "prisma": "^7.4.1",
     "source-map-support": "^0.5.21",
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
