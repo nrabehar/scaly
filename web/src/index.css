@@ -43,6 +43,10 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+    --color-buy: var(--buy);
+    --color-sell: var(--sell);
+    --color-gold: var(--gold);
+    --color-neutral-muted: var(--neutral-muted);
 }
 
 :root {
@@ -78,6 +82,10 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    --buy: oklch(0.72 0.19 155);
+    --sell: oklch(0.62 0.24 25);
+    --gold: oklch(0.83 0.16 85);
+    --neutral-muted: oklch(0.65 0.01 250);
 }
 
 .dark {
@@ -112,6 +120,10 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+    --buy: oklch(0.72 0.19 155);
+    --sell: oklch(0.62 0.24 25);
+    --gold: oklch(0.83 0.16 85);
+    --neutral-muted: oklch(0.65 0.01 250);
 }
 
 @layer base {
@@ -120,5 +132,42 @@
     }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 }
+
+.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Trading utilities */
+.text-buy { color: var(--buy); }
+.text-sell { color: var(--sell); }
+.text-gold { color: var(--gold); }
+.bg-buy { background-color: var(--buy); }
+.bg-sell { background-color: var(--sell); }
+.bg-gold { background-color: var(--gold); }
+
+/* Custom scrollbar */
+.trading-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.trading-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.trading-scroll::-webkit-scrollbar-thumb {
+  background: oklch(0.4 0 0);
+  border-radius: 2px;
+}
+
+/* Price flash animation */
+@keyframes flash-green {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: oklch(0.72 0.19 155 / 20%); }
+}
+@keyframes flash-red {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: oklch(0.62 0.24 25 / 20%); }
+}
+.flash-buy { animation: flash-green 0.4s ease-out; }
+.flash-sell { animation: flash-red 0.4s ease-out; }

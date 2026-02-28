@@ -26,12 +26,12 @@ import { NavLink } from '@/components/navlink';
 import logo from '@/assets/images/aviaca.svg';
 
 const mainNav = [
-	{ title: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-	{ title: 'My Bots', path: '/bots', icon: Bot },
-	{ title: 'Trading', path: '/trading', icon: CandlestickChart },
-	{ title: 'Analytics', path: '/analytics', icon: BarChart3 },
-	{ title: 'Strategy', path: '/strategy', icon: Workflow },
-	{ title: 'Marketplace', path: '/marketplace', icon: Store },
+	{ title: 'Dashboard', path: '/', icon: LayoutDashboard, enabled: true },
+	{ title: 'My Bots', path: '/bots', icon: Bot, enabled: false },
+	{ title: 'Trading', path: '/trading', icon: CandlestickChart, enabled: false },
+	{ title: 'Analytics', path: '/analytics', icon: BarChart3, enabled: false },
+	{ title: 'Strategy', path: '/strategy', icon: Workflow, enabled: false },
+	{ title: 'Marketplace', path: '/marketplace', icon: Store, enabled: false },
 ];
 
 const bottomNav = [
@@ -70,25 +70,35 @@ export function AppSidebar() {
 							{mainNav.map((item) => (
 								<SidebarMenuItem key={item.title}>
 									<SidebarMenuButton
-										asChild
+										asChild={item.enabled}
 										isActive={
-											location.pathname ===
-												item.path ||
-											location.pathname.startsWith(
-												item.path + '/',
+											item.enabled && (
+												location.pathname ===
+													item.path ||
+												location.pathname.startsWith(
+													item.path + '/',
+												)
 											)
 										}
-										tooltip={item.title}
+										tooltip={item.enabled ? item.title : `${item.title} (Coming Soon)`}
+										className={item.enabled ? '' : 'opacity-40 cursor-not-allowed'}
 									>
-										<NavLink
-											to={item.path}
-											end={
-												item.path === '/dashboard'
-											}
-										>
-											<item.icon className="h-4 w-4" />
-											<span>{item.title}</span>
-										</NavLink>
+										{item.enabled ? (
+											<NavLink
+												to={item.path}
+												end={
+													item.path === '/'
+												}
+											>
+												<item.icon className="h-4 w-4" />
+												<span>{item.title}</span>
+											</NavLink>
+										) : (
+											<span>
+												<item.icon className="h-4 w-4" />
+												<span>{item.title}</span>
+											</span>
+										)}
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}

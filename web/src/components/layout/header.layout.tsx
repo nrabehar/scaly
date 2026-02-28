@@ -1,14 +1,21 @@
-import { Search, Bell, CalendarDays, Settings } from 'lucide-react';
+import { Bell, CalendarDays, Settings, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
 	title: string;
 }
 
 export function Header({ title }: HeaderProps) {
+	const { i18n } = useTranslation();
+
+	const toggleLanguage = () => {
+		const next = i18n.language?.startsWith('fr') ? 'en' : 'fr';
+		i18n.changeLanguage(next);
+	};
+
 	return (
 		<header className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-4 gap-4">
 			<div className="flex items-center gap-3">
@@ -18,14 +25,19 @@ export function Header({ title }: HeaderProps) {
 				</h1>
 			</div>
 
-			<div className="flex items-center gap-3">
-				<div className="relative hidden md:block">
-					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-					<Input
-						placeholder="Search..."
-						className="pl-9 w-64 h-8 bg-secondary border-border text-sm"
-					/>
-				</div>
+			<div className="flex items-center gap-2">
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-8 w-8 text-muted-foreground hover:text-foreground"
+					onClick={toggleLanguage}
+					title={i18n.language?.startsWith('fr') ? 'Switch to English' : 'Passer en Français'}
+				>
+					<Globe className="h-4 w-4" />
+				</Button>
+				<span className="text-[10px] font-mono text-muted-foreground uppercase">
+					{i18n.language?.startsWith('fr') ? 'FR' : 'EN'}
+				</span>
 
 				<Button
 					variant="ghost"
