@@ -19,6 +19,7 @@ import { WsModule } from './ws/ws.module';
 import { StreamsModule } from './streams/streams.module';
 import { ApiController } from './api/api.controller';
 import { AccessService } from './access/access.service';
+import { ScalpService } from './signals/scalp.service';
 
 @Module({
   imports: [
@@ -39,6 +40,6 @@ import { AccessService } from './access/access.service';
     ScheduleModule.forRoot(),
   ],
   controllers: [ApiController],
-  providers: [PrismaService, AccessService],
+  providers: [PrismaService, AccessService, ScalpService],
 })
 export class AppModule {}

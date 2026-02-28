@@ -9,7 +9,6 @@ import { Injectable, Logger } from '@nestjs/common';
 
 type ClientMeta = { id: string; symbol: string };
 
-@Injectable()
 @WebSocketGateway({
   cors: { origin: '*' },
   namespace: '/',

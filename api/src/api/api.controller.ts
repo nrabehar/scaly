@@ -1,8 +1,33 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { PricesService } from '../prices/prices.service';
 import { SimulationService } from '../prices/simulation.service';
 import { OrderbookService } from '../orderbook/orderbook.service';
 import { NewsService } from '../news/news.service';
+import { ScalpService } from '../signals/scalp.service';
+
+const INSTRUMENTS = [
+  {
+    symbol: 'XAU/USD',
+    name: 'Gold',
+    type: 'commodity' as const,
+    pips: 0.01,
+    minLot: 0.01,
+  },
+  {
+    symbol: 'BTC/USD',
+    name: 'Bitcoin',
+    type: 'crypto' as const,
+    pips: 0.01,
+    minLot: 0.0001,
+  },
+  {
+    symbol: 'ETH/USD',
+    name: 'Ethereum',
+    type: 'crypto' as const,
+    pips: 0.01,
+    minLot: 0.001,
+  },
+];
 
 @Controller('api')
 export class ApiController {
@@ -11,6 +36,7 @@ export class ApiController {
     private simulation: SimulationService,
     private orderbookService: OrderbookService,
     private newsService: NewsService,
+    private scalpService: ScalpService,
   ) {}
 
   @Get('price')
@@ -83,5 +109,37 @@ export class ApiController {
       }
     }
     return { success: true, symbol, frames: out };
+  }
+
+  @Get('instruments')
+  instruments() {
+    return { success: true, instruments: INSTRUMENTS };
+  }
+
+  @Get('health')
+  health() {
+    return {
+      success: true,
+      status: 'ok',
+      uptime: process.uptime(),
+      ts: Date.now(),
+    };
+  }
+
+  @Post('scalp-3m')
+  async scalp3m(@Body() body: { symbol?: string; candles?: any[] }) {
+    const symbol = body?.symbol || 'XAU/USD';
+    let candles = body?.candles;
+    if (!candles || !candles.length) {
+      // fetch from history API
+      try {
+        const data = await this.prices.fetchHistory(symbol as any, '1min', 200);
+        candles = data as any[];
+      } catch {
+        candles = this.simulation.getHistory(symbol);
+      }
+    }
+    const result = this.scalpService.predict(symbol, candles);
+    return { success: true, symbol, ...result };
   }
 }
