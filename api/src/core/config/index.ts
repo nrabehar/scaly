@@ -13,3 +13,6 @@ export type { MailConfig } from './mail.config';
 
 export { default as agentConfig } from './agent.config';
 export type { AgentConfig } from './agent.config';
+
+export { default as newsConfig } from './news.config';
+export type { NewsConfig } from './news.config';

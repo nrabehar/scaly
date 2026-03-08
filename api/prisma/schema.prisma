@@ -18,12 +18,28 @@ model Signal {
 }
 
 model AccessLog {
-  id        Int      @id @default(autoincrement())
-  event     String
-  path      String?
-  ip        String?
-  userAgent String?
+  id          Int      @id @default(autoincrement())
+  event       String
+  path        String?
+  ip          String?
+  userAgent   String?
   fingerprint String?
-  details   Json?
-  createdAt DateTime @default(now())
+  details     Json?
+  createdAt   DateTime @default(now())
+}
+
+// Tracks every news item the pipeline has processed to avoid re-analysing
+// the same article on the next cron tick (cross-run deduplication).
+// label/confidence are stored for every article so the UI can display
+// classifier results without re-running inference.
+model ProcessedNews {
+  id          String   @id          // MD5 hash of the article identifier
+  title       String
+  source      String?
+  url         String?
+  asset       String
+  impact      String
+  label       String?              // Classifier label e.g. BULLISH_GOLD
+  confidence  Float?               // Classifier confidence 0-1
+  processedAt DateTime @default(now())
 }
