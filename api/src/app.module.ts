@@ -13,6 +13,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { NewsModule } from './modules/news/news.module';
 import { WsModule } from './ws/ws.module';
 import { PrismaModule } from './persistence/prisma.module';
+import { PricesModule } from './prices/prices.module';
+import { SignalsModule } from './signals/signals.module';
+import { StreamsModule } from './streams/streams.module';
+import { ApiModule } from './api/api.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
     imports: [
@@ -34,6 +39,11 @@ import { PrismaModule } from './persistence/prisma.module';
         PrismaModule,
         WsModule,
         NewsModule,
+        PricesModule,
+        SignalsModule,
+        StreamsModule,
+        ApiModule,
+        AiModule,
     ],
     controllers: [],
     providers: [],

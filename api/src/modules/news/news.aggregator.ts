@@ -154,6 +154,9 @@ export class NewsAggregator {
         if (!currencies?.length) return 'MACRO';
         if (currencies.some((c) => c.code === 'BTC')) return 'BTC';
         if (currencies.some((c) => c.code === 'ETH')) return 'ETH';
+        if (currencies.some((c) => c.code === 'OIL')) return 'OIL';
+        if (currencies.some((c) => c.code === 'EQUITIES')) return 'EQUITIES';
+        if (currencies.some((c) => c.code === 'FOREX')) return 'FOREX';
         return 'MACRO';
     }
 

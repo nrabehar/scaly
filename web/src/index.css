@@ -1,173 +1,321 @@
 @import 'tailwindcss';
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+html,
+body {
+	overflow-x: hidden;
+	max-width: 100vw;
+}
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --radius-sm: calc(var(--radius) - 4px);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) + 4px);
-    --radius-2xl: calc(var(--radius) + 8px);
-    --radius-3xl: calc(var(--radius) + 12px);
-    --radius-4xl: calc(var(--radius) + 16px);
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --color-card: var(--card);
-    --color-card-foreground: var(--card-foreground);
-    --color-popover: var(--popover);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-primary: var(--primary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-secondary: var(--secondary);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-muted: var(--muted);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-destructive: var(--destructive);
-    --color-border: var(--border);
-    --color-input: var(--input);
-    --color-ring: var(--ring);
-    --color-chart-1: var(--chart-1);
-    --color-chart-2: var(--chart-2);
-    --color-chart-3: var(--chart-3);
-    --color-chart-4: var(--chart-4);
-    --color-chart-5: var(--chart-5);
-    --color-sidebar: var(--sidebar);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-buy: var(--buy);
-    --color-sell: var(--sell);
-    --color-gold: var(--gold);
-    --color-neutral-muted: var(--neutral-muted);
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--radius-2xl: calc(var(--radius) + 8px);
+	--radius-3xl: calc(var(--radius) + 12px);
+	--radius-4xl: calc(var(--radius) + 16px);
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-chart-1: var(--chart-1);
+	--color-chart-2: var(--chart-2);
+	--color-chart-3: var(--chart-3);
+	--color-chart-4: var(--chart-4);
+	--color-chart-5: var(--chart-5);
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
+	--color-buy: var(--buy);
+	--color-sell: var(--sell);
+	--color-gold: var(--gold);
+	--color-neutral-muted: var(--neutral-muted);
+	--color-indigo: var(--indigo);
 }
 
 :root {
-    --radius: 0.625rem;
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-    --buy: oklch(0.72 0.19 155);
-    --sell: oklch(0.62 0.24 25);
-    --gold: oklch(0.83 0.16 85);
-    --neutral-muted: oklch(0.65 0.01 250);
+	--radius: 0.625rem;
+	--background: oklch(1 0 0);
+	--foreground: oklch(0.145 0 0);
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.145 0 0);
+	--popover: oklch(1 0 0);
+	--popover-foreground: oklch(0.145 0 0);
+	--primary: oklch(0.205 0 0);
+	--primary-foreground: oklch(0.985 0 0);
+	--secondary: oklch(0.97 0 0);
+	--secondary-foreground: oklch(0.205 0 0);
+	--muted: oklch(0.97 0 0);
+	--muted-foreground: oklch(0.556 0 0);
+	--accent: oklch(0.97 0 0);
+	--accent-foreground: oklch(0.205 0 0);
+	--destructive: oklch(0.577 0.245 27.325);
+	--border: oklch(0.922 0 0);
+	--input: oklch(0.922 0 0);
+	--ring: oklch(0.708 0 0);
+	--chart-1: oklch(0.646 0.222 41.116);
+	--chart-2: oklch(0.6 0.118 184.704);
+	--chart-3: oklch(0.398 0.07 227.392);
+	--chart-4: oklch(0.828 0.189 84.429);
+	--chart-5: oklch(0.769 0.188 70.08);
+	--sidebar: oklch(0.985 0 0);
+	--sidebar-foreground: oklch(0.145 0 0);
+	--sidebar-primary: oklch(0.205 0 0);
+	--sidebar-primary-foreground: oklch(0.985 0 0);
+	--sidebar-accent: oklch(0.97 0 0);
+	--sidebar-accent-foreground: oklch(0.205 0 0);
+	--sidebar-border: oklch(0.922 0 0);
+	--sidebar-ring: oklch(0.708 0 0);
+	--buy: oklch(0.72 0.19 155);
+	--sell: oklch(0.62 0.24 25);
+	--gold: oklch(0.83 0.16 85);
+	--neutral-muted: oklch(0.65 0.01 250);
+	--indigo: oklch(0.76 0.17 60);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-    --buy: oklch(0.72 0.19 155);
-    --sell: oklch(0.62 0.24 25);
-    --gold: oklch(0.83 0.16 85);
-    --neutral-muted: oklch(0.65 0.01 250);
+	/* Carbon dark — warm charcoal base, high contrast text */
+	--background: oklch(0.1 0.006 50);
+	--foreground: oklch(0.97 0 0);
+	--card: oklch(0.148 0.008 50);
+	--card-foreground: oklch(0.97 0 0);
+	--popover: oklch(0.158 0.008 50);
+	--popover-foreground: oklch(0.97 0 0);
+	/* Amber gold as primary */
+	--primary: oklch(0.76 0.17 60);
+	--primary-foreground: oklch(0.1 0.006 50);
+	--secondary: oklch(0.2 0.008 52);
+	--secondary-foreground: oklch(0.97 0 0);
+	--muted: oklch(0.19 0.007 50);
+	--muted-foreground: oklch(0.65 0 0);
+	--accent: oklch(0.76 0.17 60 / 12%);
+	--accent-foreground: oklch(0.97 0 0);
+	--destructive: oklch(0.63 0.24 22);
+	--border: oklch(1 0 0 / 10%);
+	--input: oklch(1 0 0 / 10%);
+	--ring: oklch(0.76 0.17 60 / 55%);
+	--chart-1: oklch(0.76 0.17 60);
+	--chart-2: oklch(0.72 0.19 155);
+	--chart-3: oklch(0.68 0.14 222);
+	--chart-4: oklch(0.63 0.24 22);
+	--chart-5: oklch(0.7 0.15 300);
+	--sidebar: oklch(0.115 0.007 50);
+	--sidebar-foreground: oklch(0.97 0 0);
+	--sidebar-primary: oklch(0.76 0.17 60);
+	--sidebar-primary-foreground: oklch(0.1 0.006 50);
+	--sidebar-accent: oklch(0.76 0.17 60 / 10%);
+	--sidebar-accent-foreground: oklch(0.97 0 0);
+	--sidebar-border: oklch(1 0 0 / 8%);
+	--sidebar-ring: oklch(0.76 0.17 60 / 50%);
+	--buy: oklch(0.72 0.19 155);
+	--sell: oklch(0.62 0.24 25);
+	--gold: oklch(0.83 0.16 85);
+	--neutral-muted: oklch(0.65 0 0);
+	--indigo: oklch(0.76 0.17 60);
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-    }
-  body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-background text-foreground;
+		font-family:
+			'Inter',
+			system-ui,
+			-apple-system,
+			sans-serif;
+	}
 }
 
 .font-mono {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+	font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ── Indigo shorthand utilities ── */
+.text-indigo {
+	color: var(--indigo);
+}
+.bg-indigo {
+	background-color: var(--indigo);
+}
+
+/* ── Card accent top-border ── */
+.card-accent-top {
+	position: relative;
+}
+.card-accent-top::before {
+	content: '';
+	position: absolute;
+	inset-inline: 0;
+	top: 0;
+	height: 2px;
+	background: linear-gradient(
+		90deg,
+		oklch(0.76 0.17 60 / 0%),
+		oklch(0.76 0.17 60 / 85%),
+		oklch(0.76 0.17 60 / 0%)
+	);
+	border-radius: inherit;
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+	z-index: 1;
+}
+.card-buy-top::before {
+	background: linear-gradient(
+		90deg,
+		oklch(0.72 0.19 155 / 0%),
+		oklch(0.72 0.19 155 / 80%),
+		oklch(0.72 0.19 155 / 0%)
+	);
+}
+.card-sell-top::before {
+	background: linear-gradient(
+		90deg,
+		oklch(0.62 0.24 25 / 0%),
+		oklch(0.62 0.24 25 / 80%),
+		oklch(0.62 0.24 25 / 0%)
+	);
+}
+
+/* ── Gradient text ── */
+.gradient-text {
+	background: linear-gradient(
+		135deg,
+		oklch(0.9 0.12 72),
+		oklch(0.76 0.17 60)
+	);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+}
+
+/* ── Glow utilities ── */
+.glow-buy {
+	box-shadow: 0 0 8px oklch(0.72 0.19 155 / 55%);
+}
+.glow-sell {
+	box-shadow: 0 0 8px oklch(0.62 0.24 25 / 55%);
+}
+.glow-indigo {
+	box-shadow: 0 0 10px oklch(0.76 0.17 60 / 55%);
+}
+
+/* ── Glass card ── */
+.glass-card {
+	background: oklch(0.148 0.008 50 / 70%);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border: 1px solid oklch(1 0 0 / 10%);
+	border-radius: var(--radius-lg);
+}
+
+/* ── Animations ── */
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(18px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+@keyframes glowPulse {
+	0%,
+	100% {
+		opacity: 1;
+		box-shadow: 0 0 4px currentColor;
+	}
+	50% {
+		opacity: 0.55;
+		box-shadow: 0 0 10px currentColor;
+	}
+}
+.anim-fade-up {
+	animation: fadeInUp 0.45s ease-out both;
+}
+.glow-pulse {
+	animation: glowPulse 2.2s ease-in-out infinite;
 }
 
 /* Trading utilities */
-.text-buy { color: var(--buy); }
-.text-sell { color: var(--sell); }
-.text-gold { color: var(--gold); }
-.bg-buy { background-color: var(--buy); }
-.bg-sell { background-color: var(--sell); }
-.bg-gold { background-color: var(--gold); }
+.text-buy {
+	color: var(--buy);
+}
+.text-sell {
+	color: var(--sell);
+}
+.text-gold {
+	color: var(--gold);
+}
+.bg-buy {
+	background-color: var(--buy);
+}
+.bg-sell {
+	background-color: var(--sell);
+}
+.bg-gold {
+	background-color: var(--gold);
+}
 
 /* Custom scrollbar */
 .trading-scroll::-webkit-scrollbar {
-  width: 4px;
+	width: 4px;
 }
 .trading-scroll::-webkit-scrollbar-track {
-  background: transparent;
+	background: transparent;
 }
 .trading-scroll::-webkit-scrollbar-thumb {
-  background: oklch(0.4 0 0);
-  border-radius: 2px;
+	background: oklch(0.28 0.02 52);
+	border-radius: 2px;
 }
 
 /* Price flash animation */
 @keyframes flash-green {
-  0%, 100% { background-color: transparent; }
-  50% { background-color: oklch(0.72 0.19 155 / 20%); }
+	0%,
+	100% {
+		background-color: transparent;
+	}
+	50% {
+		background-color: oklch(0.72 0.19 155 / 20%);
+	}
 }
 @keyframes flash-red {
-  0%, 100% { background-color: transparent; }
-  50% { background-color: oklch(0.62 0.24 25 / 20%); }
+	0%,
+	100% {
+		background-color: transparent;
+	}
+	50% {
+		background-color: oklch(0.62 0.24 25 / 20%);
+	}
 }
-.flash-buy { animation: flash-green 0.4s ease-out; }
-.flash-sell { animation: flash-red 0.4s ease-out; }
+.flash-buy {
+	animation: flash-green 0.4s ease-out;
+}
+.flash-sell {
+	animation: flash-red 0.4s ease-out;
+}

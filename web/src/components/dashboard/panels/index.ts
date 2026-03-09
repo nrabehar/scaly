@@ -11,3 +11,6 @@ export { PivotPointsPanel } from './pivot-points-panel';
 export { MarketInfoPanel } from './market-info-panel';
 export { OrderbookPanel } from './orderbook-panel';
 export { SignalHistoryPanel } from './signal-history-panel';
+export { RiskPanel } from './risk-panel';
+export { TradingSessionsPanel } from './trading-sessions-panel';
+export { MacroCalendarPanel } from './macro-calendar-panel';

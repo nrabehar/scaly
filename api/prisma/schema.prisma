@@ -7,14 +7,16 @@ datasource db {
 }
 
 model Signal {
-  id        Int      @id @default(autoincrement())
-  symbol    String
-  provider  String?
-  signal    String
-  score     Float?   
-  metadata  Json?
-  resolved  Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id         Int       @id @default(autoincrement())
+  symbol     String
+  provider   String?
+  signal     String
+  score      Float?
+  metadata   Json?
+  resolved   Boolean   @default(false)
+  outcome    String?
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
 }
 
 model AccessLog {

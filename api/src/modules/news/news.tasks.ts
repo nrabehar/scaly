@@ -96,24 +96,7 @@ export class NewsTasks {
             timestamp: news.timestamp,
         };
 
-        // Emit to WebSocket clients
         this.wsGateway.broadcastNews(news.asset, payload);
-
-        // Persist signal to database
-        await this.prisma.signal.create({
-            data: {
-                symbol: news.asset,
-                provider: 'news-classifier',
-                signal: JSON.stringify({ direction, label: analysis.label }),
-                score: analysis.confidence,
-                metadata: payload,
-            },
-        });
-
-        this.logger.log(
-            `[SIGNAL ${ImpactLevel[impact]}] ${news.asset} | ${direction} | ` +
-                `${(analysis.confidence * 100).toFixed(1)}% confidence | ${news.title}`,
-        );
     }
 
     /**

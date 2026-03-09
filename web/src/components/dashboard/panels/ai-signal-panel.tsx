@@ -1,9 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMarket } from '@/contexts/market.context';
-import { useAiSignal, useScalp3m, useHistory } from '@/hooks/use-market-data';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import {
+  useAiSignal,
+  useSignalLive,
+  useSignalHold,
+} from '@/hooks/use-market-data';
+import { subscribeLiveTick, getLastTick } from '@/lib/liveTickBus';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -12,183 +21,733 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Zap, Brain } from 'lucide-react';
+import {
+  Brain,
+  Radio,
+  Wifi,
+  WifiOff,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Clock,
+} from 'lucide-react';
+import type { ScalpResult } from '@/types/market';
 
 const AI_MODELS = ['gemini', 'groq', 'openrouter', 'ollama'] as const;
 
+const convictionClass = (v?: string) => {
+	if (!v) return '';
+	const u = v.toUpperCase();
+	if (u === 'HIGH') return 'bg-buy/20 text-buy border-buy/30';
+	if (u === 'LOW') return 'bg-sell/20 text-sell border-sell/30';
+	return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+};
+
+const biasIcon = (b?: string) => {
+	if (!b) return <Minus className="h-3 w-3 text-muted-foreground" />;
+	if (b === 'BULLISH')
+		return <TrendingUp className="h-3 w-3 text-buy" />;
+	if (b === 'BEARISH')
+		return <TrendingDown className="h-3 w-3 text-sell" />;
+	return <Minus className="h-3 w-3 text-muted-foreground" />;
+};
+
+function buildSmcPrompt(signal: ScalpResult, symbol: string): string {
+	const { smc, indicators, plan, side, confidence, reasons, mtfBias } =
+		signal;
+	const price = plan.entry || 0;
+	const ob = (smc as any).nearestOb;
+	const fvg = (smc as any).nearestFvg;
+	const obStr = ob
+		? `${ob.type} [${ob.bottom?.toFixed(2)}–${ob.top?.toFixed(2)}] (${ob.mitigated === 0 ? 'pristine' : 'tested'})`
+		: 'None nearby';
+	const fvgStr = fvg
+		? `${fvg.type} [${fvg.bottom?.toFixed(2)}–${fvg.top?.toFixed(2)}]`
+		: 'None nearby';
+
+	return `You are a professional SMC (Smart Money Concepts) and price action analyst.
+
+INSTRUMENT: ${symbol}  CURRENT PRICE: ${price}
+ENGINE SIGNAL: ${side} | Confidence: ${confidence}% | Score: ${signal.score}
+
+=== MARKET STRUCTURE ===
+Trend: ${smc.trend} | Bias: ${smc.bias}
+Last Break: ${smc.lastBreak ?? 'None'}
+Price Zone: ${smc.priceZone}${smc.inGoldenPocket ? ' ★ GOLDEN POCKET (0.618–0.65)' : ''}
+
+=== LIQUIDITY MAP ===
+BSL: ${smc.nearestBsl != null ? smc.nearestBsl.toFixed(2) : 'None'}
+SSL: ${smc.nearestSsl != null ? smc.nearestSsl.toFixed(2) : 'None'}
+
+=== KEY ZONES ===
+Nearest Order Block: ${obStr}
+Nearest FVG / Imbalance: ${fvgStr}
+
+=== MTF BIAS (1H) ===
+${mtfBias}
+
+=== CONFLUENCES ===
+RSI(14): ${indicators.rsi?.toFixed(1) ?? 'N/A'} | ADX: ${indicators.adxVal?.toFixed(1) ?? 'N/A'} | MACD Hist: ${indicators.macdHistogram != null ? (indicators.macdHistogram > 0 ? '+' : '') + indicators.macdHistogram.toFixed(4) : 'N/A'}
+VWAP: ${indicators.vwapAbove ? 'ABOVE' : 'BELOW'} | OBV: ${indicators.obvTrend ?? 'N/A'} | CVD div: ${indicators.cvdDivergence ? 'YES' : 'No'}
+
+=== ENGINE REASONS ===
+${reasons
+	.slice(0, 10)
+	.map((r, i) => `${i + 1}. ${r}`)
+	.join('\n')}
+
+=== TRADE PLAN ===
+Entry: ${plan.entry} | TP: ${plan.tp} | SL: ${plan.sl} | RR: ${plan.rr}:1 | ATR: ${plan.atrVal}
+
+Analyze the SMC/PA setup. Focus on: structure validity, OB/FVG confluence, liquidity being targeted, optimal entry trigger (PA confirmation), invalidation, conviction level.
+
+Respond ONLY in valid JSON (no markdown fences):
+{"conviction":"HIGH|MEDIUM|LOW","smcCommentary":"...","entryTiming":"...","invalidation":"...","targetLiquidity":"...","keyRisk":"..."}`;
+}
+
+interface AiCommentary {
+	conviction?: string;
+	smcCommentary?: string;
+	entryTiming?: string;
+	invalidation?: string;
+	targetLiquidity?: string;
+	keyRisk?: string;
+}
+
 export function AiSignalPanel() {
-  const { t } = useTranslation();
-  const { currentSymbol, currentTimeframe, selectedAiModel, setSelectedAiModel } = useMarket();
-  const { data: historyResp } = useHistory(currentSymbol, '1min', 200);
-  const candles = (historyResp as any)?.data ?? historyResp ?? [];
+	const { t } = useTranslation();
+	const { currentSymbol, selectedAiModel, setSelectedAiModel } =
+		useMarket();
+	const { data: liveSignal } = useSignalLive(currentSymbol);
+	const { data: holdState } = useSignalHold(currentSymbol);
+	const aiSignal = useAiSignal();
+	const [commentary, setCommentary] = useState<AiCommentary | null>(
+		null,
+	);
+	const lastSignalKey = useRef<string | null>(null);
 
-  const aiSignal = useAiSignal();
-  const scalp3m = useScalp3m();
-  const [lastAi, setLastAi] = useState<any>(null);
-  const [lastScalp, setLastScalp] = useState<any>(null);
+	// Real-time price via liveTickBus (zero React-Query overhead on the hot path)
+	const [livePrice, setLivePrice] = useState<number | null>(() => {
+		return getLastTick(currentSymbol)?.price ?? null;
+	});
+	useEffect(() => {
+		const last = getLastTick(currentSymbol);
+		if (last) setLivePrice(last.price);
+		return subscribeLiveTick(currentSymbol, (tick) =>
+			setLivePrice(tick.price),
+		);
+	}, [currentSymbol]);
 
-  const buildPrompt = () => {
-    const last20 = candles.slice(-20);
-    const rows = last20.map((c: any) => `O:${c.open} H:${c.high} L:${c.low} C:${c.close} V:${c.volume ?? 0}`);
-    return `Analyze ${currentSymbol} on ${currentTimeframe}. Last 20 candles:\n${rows.join('\n')}\nProvide: side (BUY/SELL/HOLD), entryPrice, stopLoss, takeProfit, confidence (0-100), reasoning.`;
-  };
+	// Use aiConsensus already embedded in the WS signal (generated by the backend
+	// during the SMC pipeline). Only fall back to a manual HTTP call when it's absent.
+	useEffect(() => {
+		if (!liveSignal) return;
+		const key = `${liveSignal.symbol}-${liveSignal.side}-${liveSignal.score}`;
+		if (key === lastSignalKey.current) return;
+		lastSignalKey.current = key;
+		setCommentary(null);
 
-  const handleAnalyze = async () => {
-    try {
-      const result = await aiSignal.mutateAsync({
-        symbol: currentSymbol,
-        prompt: buildPrompt(),
-        model: selectedAiModel,
-      });
-      setLastAi(result);
-    } catch { /* silently fail */ }
-  };
+		// Prefer the consensus already computed by the stream engine
+		const embedded = (liveSignal as any)?.aiConsensus as
+			| AiCommentary
+			| undefined;
+		if (embedded?.conviction) {
+			setCommentary(embedded);
+			return;
+		}
 
-  const handleScalp = async () => {
-    try {
-      const result = await scalp3m.mutateAsync({
-        symbol: currentSymbol,
-        candles,
-      });
-      setLastScalp(result);
-    } catch { /* silently fail */ }
-  };
+		// Fallback: ask the AI endpoint directly (e.g. signal came from HTTP history)
+		aiSignal
+			.mutateAsync({
+				symbol: liveSignal.symbol,
+				prompt: buildSmcPrompt(liveSignal, liveSignal.symbol),
+				model: selectedAiModel,
+			})
+			.then((res) => {
+				const parsed = (res as any)?.parsed;
+				if (parsed?.conviction) {
+					setCommentary(parsed as AiCommentary);
+				}
+			})
+			.catch(() => {
+				/* silently ignore */
+			});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [liveSignal]);
 
-  const signalColor = (side?: string) => {
-    if (!side) return 'text-muted-foreground';
-    const s = side.toUpperCase();
-    return s === 'BUY' || s === 'LONG' ? 'text-buy' : s === 'SELL' || s === 'SHORT' ? 'text-sell' : 'text-muted-foreground';
-  };
+	const sideColor = (s?: string) => {
+		if (!s) return 'text-muted-foreground';
+		const u = s.toUpperCase();
+		return u === 'BUY'
+			? 'text-buy'
+			: u === 'SELL'
+				? 'text-sell'
+				: 'text-muted-foreground';
+	};
 
-  return (
-    <Card>
-      <CardHeader className="pb-2 pt-3 px-4">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Brain className="h-4 w-4" />
-          {t('dashboard.aiSignal')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 px-4 pb-3">
-        {/* Model selector */}
-        <div className="flex items-center gap-2">
-          <Select value={selectedAiModel} onValueChange={(v) => setSelectedAiModel(v as any)}>
-            <SelectTrigger className="h-7 text-xs w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {AI_MODELS.map((m) => (
-                <SelectItem key={m} value={m} className="text-xs">
-                  {m}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+	const mtfPillClass = (b?: string) => {
+		if (b === 'BULLISH') return 'bg-buy/15 text-buy';
+		if (b === 'BEARISH') return 'bg-sell/15 text-sell';
+		return 'bg-muted text-muted-foreground';
+	};
 
-          <Button
-            size="sm"
-            variant="default"
-            className="h-7 text-xs gap-1"
-            onClick={handleAnalyze}
-            disabled={aiSignal.isPending}
-          >
-            {aiSignal.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Brain className="h-3 w-3" />}
-            {t('signals.analyze')}
-          </Button>
+	return (
+		<Card>
+			<CardHeader className="pb-2 pt-3 px-4">
+				<CardTitle className="text-sm font-medium flex items-center gap-2">
+					<Brain className="h-4 w-4" />
+					{t('dashboard.aiSignal')}
 
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs gap-1"
-            onClick={handleScalp}
-            disabled={scalp3m.isPending}
-          >
-            {scalp3m.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
-            Scalp 3m
-          </Button>
-        </div>
+					{liveSignal ? (
+						<span className="flex items-center gap-1 text-[10px] text-blue-400">
+							<Radio className="h-3 w-3 animate-pulse" />
+							Live
+						</span>
+					) : (
+						<span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+							<WifiOff className="h-3 w-3" />
+							Waiting
+						</span>
+					)}
 
-        {/* AI Result */}
-        {lastAi && (() => {
-          const p = lastAi.parsed ?? lastAi;
-          const side = p.side ?? p.signal ?? null;
-          const entry = p.entryPrice ?? p.entry ?? null;
-          const tp = p.takeProfit ?? p.tp ?? null;
-          const sl = p.stopLoss ?? p.sl ?? null;
-          const conf = p.confidence ?? null;
-          const reasoning = p.reasoning ?? p.reason ?? lastAi.reason ?? null;
-		  console.log('AI Signal:', { side, entry, tp, sl, conf, reasoning });
-          return (
-            <div className="rounded-md border p-2 space-y-1 text-xs">
-              <div className="flex justify-between items-center">
-                <span className={`font-bold text-sm ${signalColor(side)}`}>
-                  {side ?? 'N/A'}
-                </span>
-                {conf != null && (
-                  <Badge variant="outline" className="text-[10px]">
-                    {conf}%
-                  </Badge>
-                )}
-              </div>
-              {lastAi.model && (
-                <div className="text-[10px] text-muted-foreground">Model: {lastAi.model}</div>
-              )}
-              {entry != null && (
-                <div className="grid grid-cols-3 gap-1 font-mono tabular-nums">
-                  <span>E: {entry}</span>
-                  <span className="text-buy">TP: {tp ?? '—'}</span>
-                  <span className="text-sell">SL: {sl ?? '—'}</span>
-                </div>
-              )}
-              {reasoning && (
-                <p className="text-muted-foreground leading-snug">{reasoning}</p>
-              )}
-            </div>
-          );
-        })()}
+					<Select
+						value={selectedAiModel}
+						onValueChange={(v) => setSelectedAiModel(v as any)}
+					>
+						<SelectTrigger className="ml-auto h-6 text-[10px] w-22.5 border-0 shadow-none bg-muted/50">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{AI_MODELS.map((m) => (
+								<SelectItem
+									key={m}
+									value={m}
+									className="text-xs"
+								>
+									{m}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</CardTitle>
+			</CardHeader>
 
-        {/* Scalp Result */}
-        {lastScalp && (() => {
-          const p = lastScalp.prediction ?? lastScalp;
-          const side = p.side ?? null;
-          const entry = p.entry ?? null;
-          const tp = p.tp ?? null;
-          const sl = p.sl ?? null;
-          const conf = p.confidence ?? null;
-          const reasons = p.reasons ?? [];
-          return (
-            <div className="rounded-md border p-2 space-y-1 text-xs">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground text-[10px] uppercase tracking-wider">Scalp 3m</span>
-                <span className={`font-bold ${signalColor(side)}`}>
-                  {side ?? '—'}
-                </span>
-              </div>
-              {entry != null && (
-                <div className="grid grid-cols-3 gap-1 font-mono tabular-nums">
-                  <span>E: {entry}</span>
-                  <span className="text-buy">TP: {tp ?? '—'}</span>
-                  <span className="text-sell">SL: {sl ?? '—'}</span>
-                </div>
-              )}
-              {conf != null && (
-                <div className="w-full bg-muted rounded-full h-1.5 mt-1">
-                  <div
-                    className="h-1.5 rounded-full bg-blue-500 transition-all"
-                    style={{ width: `${conf}%` }}
-                  />
-                </div>
-              )}
-              {reasons.length > 0 && (
-                <ul className="text-muted-foreground space-y-0.5 mt-1">
-                  {reasons.slice(0, 5).map((r: string, i: number) => (
-                    <li key={i}>• {r}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          );
-        })()}
-      </CardContent>
-    </Card>
-  );
+			<CardContent className="space-y-3 px-4 pb-3">
+				{/* No signal yet — show hold reason if available */}
+				{!liveSignal && (
+					<div className="flex flex-col items-center justify-center py-6 gap-2 text-muted-foreground text-xs">
+						{holdState ? (
+							<>
+								<Clock className="h-5 w-5 opacity-40" />
+								<span className="font-medium text-yellow-500/80">
+									{t('signals.engineWaiting')}
+								</span>
+								<span className="text-[10px] text-center max-w-55 opacity-70 leading-relaxed">
+									{holdState.reason}
+								</span>
+								<span className="text-[10px] opacity-40">
+									{t('signals.autoRefreshNote')}
+								</span>
+							</>
+						) : (
+							<>
+								<Wifi className="h-6 w-6 opacity-30" />
+								<span>{t('signals.awaitingSignal')}</span>
+								<span className="text-[10px] opacity-60">
+									{t('signals.autoRefreshNote')}
+								</span>
+							</>
+						)}
+					</div>
+				)}
+
+				{/* Engine signal card */}
+				{liveSignal && (
+					<div className="rounded-md border p-2.5 space-y-2 text-xs">
+						{/* Header */}
+						<div className="flex items-center gap-2">
+							{biasIcon(
+								liveSignal.side === 'BUY'
+									? 'BULLISH'
+									: liveSignal.side === 'SELL'
+										? 'BEARISH'
+										: undefined,
+							)}
+							<span
+								className={`font-bold text-base ${sideColor(liveSignal.side)}`}
+							>
+								{liveSignal.side}
+							</span>
+							<Badge
+								variant="outline"
+								className="text-[10px] font-mono ml-auto"
+							>
+								{liveSignal.confidence}%
+							</Badge>
+							<span
+								className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${mtfPillClass(liveSignal.mtfBias)}`}
+							>
+								1H: {liveSignal.mtfBias}
+							</span>
+						</div>
+
+						{/* Confidence bar */}
+						<div className="w-full bg-muted rounded-full h-1">
+							<div
+								className={`h-1 rounded-full transition-all ${liveSignal.side === 'BUY' ? 'bg-buy' : liveSignal.side === 'SELL' ? 'bg-sell' : 'bg-muted-foreground'}`}
+								style={{
+									width: `${liveSignal.confidence}%`,
+								}}
+							/>
+						</div>
+
+						{/* Trade plan */}
+						{liveSignal.plan && liveSignal.plan.entry > 0 && (
+							<div className="grid grid-cols-4 gap-1 font-mono tabular-nums text-[11px]">
+								<span>
+									<span className="text-muted-foreground">
+										E{' '}
+									</span>
+									{liveSignal.plan.entry.toFixed(2)}
+								</span>
+								<span className="text-buy">
+									TP {liveSignal.plan.tp.toFixed(2)}
+								</span>
+								<span className="text-sell">
+									SL {liveSignal.plan.sl.toFixed(2)}
+								</span>
+								<span className="text-muted-foreground">
+									{liveSignal.plan.rr.toFixed(1)}R
+								</span>
+							</div>
+						)}
+
+						{/* ── Live P&L tracker ──────────────────────────────── */}
+						{(() => {
+							const plan = liveSignal.plan;
+							if (
+								!plan ||
+								plan.entry <= 0 ||
+								livePrice == null
+							)
+								return null;
+							const dir =
+								liveSignal.side === 'BUY'
+									? 1
+									: liveSignal.side === 'SELL'
+										? -1
+										: 0;
+							if (dir === 0) return null;
+
+							const pnlPts = (livePrice - plan.entry) * dir;
+							const pnlPct = (pnlPts / plan.entry) * 100;
+							const totalRange = Math.abs(
+								plan.tp - plan.entry,
+							);
+							const slRange = Math.abs(plan.sl - plan.entry);
+							// tpProg: 0=entry, 100=TP, <0=toward SL
+							const tpProg =
+								totalRange > 0
+									? Math.max(
+											-100,
+											Math.min(
+												100,
+												(pnlPts / totalRange) *
+													100,
+											),
+										)
+									: 0;
+							const slProg =
+								slRange > 0
+									? Math.min(
+											100,
+											(Math.abs(
+												Math.min(0, pnlPts),
+											) /
+												slRange) *
+												100,
+										)
+									: 0;
+							const distToTp = Math.abs(plan.tp - livePrice);
+							const distToSl = Math.abs(plan.sl - livePrice);
+							const isFlat = Math.abs(pnlPts) < 0.005;
+							const isWin = !isFlat && pnlPts > 0;
+
+							return (
+								<div className="rounded border border-border/50 p-2 space-y-1.5 bg-muted/20">
+									{/* Row 1: current price + status pill */}
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-1.5">
+											<span className="text-[9px] text-muted-foreground uppercase tracking-wide">
+												Now
+											</span>
+											<span className="font-mono font-bold text-[13px] tabular-nums">
+												{livePrice.toFixed(2)}
+											</span>
+											<span
+												className={`text-[10px] font-bold ${isFlat ? 'text-muted-foreground' : isWin ? 'text-buy' : 'text-sell'}`}
+											>
+												{isFlat
+													? '—'
+													: isWin
+														? '▲'
+														: '▼'}
+											</span>
+										</div>
+										<span
+											className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+												isFlat
+													? 'bg-muted text-muted-foreground'
+													: isWin
+														? 'bg-buy/15 text-buy'
+														: 'bg-sell/15 text-sell'
+											}`}
+										>
+											{isFlat
+												? 'FLAT'
+												: isWin
+													? 'WIN'
+													: 'LOSS'}
+										</span>
+									</div>
+
+									{/* Row 2: unrealised gain pts + % */}
+									<div
+										className={`flex justify-between font-mono tabular-nums text-[11px] font-semibold ${
+											isFlat
+												? 'text-muted-foreground'
+												: isWin
+													? 'text-buy'
+													: 'text-sell'
+										}`}
+									>
+										<span>
+											{pnlPts > 0 ? '+' : ''}
+											{pnlPts.toFixed(2)} pts
+										</span>
+										<span>
+											{pnlPct > 0 ? '+' : ''}
+											{pnlPct.toFixed(3)}%
+										</span>
+									</div>
+
+									{/* Dual progress bar centred on entry */}
+									<div>
+										<div className="relative h-2 rounded-full bg-muted overflow-hidden">
+											{/* TP side (right of centre) */}
+											{tpProg > 0 && (
+												<div
+													className="absolute inset-y-0 left-1/2 rounded-r-full bg-buy transition-all duration-300"
+													style={{
+														width: `${Math.min(50, tpProg / 2)}%`,
+													}}
+												/>
+											)}
+											{/* SL side (left of centre) */}
+											{slProg > 0 && (
+												<div
+													className="absolute inset-y-0 right-1/2 rounded-l-full bg-sell transition-all duration-300"
+													style={{
+														width: `${Math.min(50, slProg / 2)}%`,
+													}}
+												/>
+											)}
+											{/* Entry tick */}
+											<div className="absolute inset-y-0 left-1/2 w-px bg-border/80" />
+										</div>
+										<div className="flex justify-between text-[9px] text-muted-foreground mt-0.5">
+											<span className="text-sell">
+												SL
+											</span>
+											<span className="opacity-40">
+												Entry
+											</span>
+											<span className="text-buy">
+												TP
+											</span>
+										</div>
+									</div>
+
+									{/* Row 3: distance remaining */}
+									<div className="flex justify-between font-mono tabular-nums text-[10px]">
+										<span className="text-sell">
+											SL {distToSl.toFixed(2)} away
+										</span>
+										<span className="text-buy">
+											TP {distToTp.toFixed(2)} away
+										</span>
+									</div>
+								</div>
+							);
+						})()}
+
+						{/* SMC context */}
+						<div className="border-t border-border/50 pt-1.5 space-y-1">
+							<div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
+								<span>
+									<span className="text-foreground/50">
+										Trend
+									</span>{' '}
+									{liveSignal.smc.trend}
+								</span>
+								<span>
+									<span className="text-foreground/50">
+										Zone
+									</span>{' '}
+									{liveSignal.smc.priceZone}
+								</span>
+								{liveSignal.smc.lastBreak && (
+									<span>
+										<span className="text-foreground/50">
+											Break
+										</span>{' '}
+										{liveSignal.smc.lastBreak}
+									</span>
+								)}
+								{liveSignal.smc.inGoldenPocket && (
+									<span className="px-1 rounded bg-yellow-500/20 text-yellow-400 font-medium">
+										Golden Pocket
+									</span>
+								)}
+							</div>
+							{(liveSignal.smc.nearestBsl != null ||
+								liveSignal.smc.nearestSsl != null) && (
+								<div className="flex gap-3 font-mono text-[10px]">
+									{liveSignal.smc.nearestBsl != null && (
+										<span className="text-buy opacity-80">
+											BSL{' '}
+											{liveSignal.smc.nearestBsl.toFixed(
+												2,
+											)}
+										</span>
+									)}
+									{liveSignal.smc.nearestSsl != null && (
+										<span className="text-sell opacity-80">
+											SSL{' '}
+											{liveSignal.smc.nearestSsl.toFixed(
+												2,
+											)}
+										</span>
+									)}
+								</div>
+							)}
+						</div>
+
+						{/* Indicator mini row */}
+						{liveSignal.indicators && (
+							<div className="grid grid-cols-3 gap-x-3 gap-y-0.5 font-mono text-[10px] text-muted-foreground border-t border-border/50 pt-1.5">
+								{liveSignal.indicators.rsi != null && (
+									<span
+										className={
+											liveSignal.indicators.rsi > 70
+												? 'text-sell'
+												: liveSignal.indicators
+															.rsi < 30
+													? 'text-buy'
+													: ''
+										}
+									>
+										RSI{' '}
+										{liveSignal.indicators.rsi.toFixed(
+											1,
+										)}
+									</span>
+								)}
+								{liveSignal.indicators.adxVal != null && (
+									<span>
+										ADX{' '}
+										{liveSignal.indicators.adxVal.toFixed(
+											1,
+										)}
+									</span>
+								)}
+								{liveSignal.indicators.macdHistogram !=
+									null && (
+									<span
+										className={
+											liveSignal.indicators
+												.macdHistogram > 0
+												? 'text-buy'
+												: 'text-sell'
+										}
+									>
+										MACD{' '}
+										{liveSignal.indicators
+											.macdHistogram > 0
+											? '+'
+											: ''}
+										{liveSignal.indicators.macdHistogram.toFixed(
+											3,
+										)}
+									</span>
+								)}
+								{liveSignal.indicators.vwapAbove !=
+									null && (
+									<span
+										className={
+											liveSignal.indicators.vwapAbove
+												? 'text-buy'
+												: 'text-sell'
+										}
+									>
+										VWAP{' '}
+										{liveSignal.indicators.vwapAbove
+											? '↑'
+											: '↓'}
+									</span>
+								)}
+								{liveSignal.indicators.obvTrend && (
+									<span
+										className={
+											liveSignal.indicators
+												.obvTrend === 'rising'
+												? 'text-buy'
+												: 'text-sell'
+										}
+									>
+										OBV{' '}
+										{liveSignal.indicators.obvTrend}
+									</span>
+								)}
+								{liveSignal.indicators.stochK != null && (
+									<span>
+										%K{' '}
+										{liveSignal.indicators.stochK.toFixed(
+											1,
+										)}
+									</span>
+								)}
+							</div>
+						)}
+
+						{/* Reasons */}
+						{liveSignal.reasons &&
+							liveSignal.reasons.length > 0 && (
+								<ul className="text-[10px] text-muted-foreground space-y-0.5 border-t border-border/50 pt-1.5">
+									{liveSignal.reasons
+										.slice(0, 6)
+										.map((r, i) => (
+											<li
+												key={i}
+												className="flex gap-1"
+											>
+												<span className="opacity-40">
+													•
+												</span>
+												{r}
+											</li>
+										))}
+								</ul>
+							)}
+					</div>
+				)}
+
+				{/* AI commentary card */}
+				{liveSignal && (
+					<div className="rounded-md border border-border/50 p-2.5 space-y-2 text-xs bg-card/40">
+						<div className="flex items-center gap-2">
+							<Brain className="h-3 w-3 text-muted-foreground" />
+							<span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+								{selectedAiModel}
+							</span>
+							{aiSignal.isPending && (
+								<span className="ml-auto flex items-center gap-1 text-[10px] text-blue-400 animate-pulse">
+									<svg
+										className="h-3 w-3 animate-spin"
+										xmlns="http://www.w3.org/2000/svg"
+										fill="none"
+										viewBox="0 0 24 24"
+									>
+										<circle
+											className="opacity-25"
+											cx="12"
+											cy="12"
+											r="10"
+											stroke="currentColor"
+											strokeWidth="4"
+										/>
+										<path
+											className="opacity-75"
+											fill="currentColor"
+											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+										/>
+									</svg>
+									Analyzing…
+								</span>
+							)}
+							{commentary?.conviction &&
+								!aiSignal.isPending && (
+									<Badge
+										variant="outline"
+										className={`ml-auto text-[10px] border ${convictionClass(commentary.conviction)}`}
+									>
+										{commentary.conviction}
+									</Badge>
+								)}
+						</div>
+
+						{!commentary && !aiSignal.isPending && (
+							<p className="text-[10px] text-muted-foreground italic">
+								{t('signals.aiPending')}
+							</p>
+						)}
+
+						{commentary && (
+							<div className="space-y-1.5">
+								{commentary.smcCommentary && (
+									<p className="text-muted-foreground leading-relaxed">
+										{commentary.smcCommentary}
+									</p>
+								)}
+								<div className="space-y-1 text-[10px]">
+									{commentary.entryTiming && (
+										<div>
+											<span className="text-foreground/50 font-medium">
+												Entry:{' '}
+											</span>
+											<span className="text-muted-foreground">
+												{commentary.entryTiming}
+											</span>
+										</div>
+									)}
+									{commentary.targetLiquidity && (
+										<div>
+											<span className="text-foreground/50 font-medium">
+												Target:{' '}
+											</span>
+											<span className="text-muted-foreground">
+												{
+													commentary.targetLiquidity
+												}
+											</span>
+										</div>
+									)}
+									{commentary.invalidation && (
+										<div>
+											<span className="text-sell/70 font-medium">
+												Invalidation:{' '}
+											</span>
+											<span className="text-muted-foreground">
+												{commentary.invalidation}
+											</span>
+										</div>
+									)}
+									{commentary.keyRisk && (
+										<div>
+											<span className="text-yellow-500/70 font-medium">
+												Key risk:{' '}
+											</span>
+											<span className="text-muted-foreground">
+												{commentary.keyRisk}
+											</span>
+										</div>
+									)}
+								</div>
+							</div>
+						)}
+					</div>
+				)}
+			</CardContent>
+		</Card>
+	);
 }

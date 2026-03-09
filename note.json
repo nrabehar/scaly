@@ -1,0 +1,21 @@
+{
+	"news": [
+		{
+			"site": "https://finnhub.io",
+			"apikey": "d6mpoh1r01qir35i0glgd6mpoh1r01qir35i0gm0",
+			"secret": "d6mpoh1r01qir35i0gn0",
+			"library": "https://www.npmjs.com/package/finnhub"
+		},
+		{
+			"site": "https://www.alphavantage.co",
+			"apikey": "Q9Z8X7KZ5V9Z5X6",
+			"secret": "Q9Z8X7KZ5V9Z5X6",
+			"library": "https://www.npmjs.com/package/alphavantage"
+		},
+		{
+			"site": "https://www.cryotipanic.com",
+			"apikey": "e16043de8647a019ef0a4d3eac8268e25ed44122",
+			"endpoint": "https://cryptopanic.com/api/developer/v2/posts/?auth_token="
+		}
+	]
+}

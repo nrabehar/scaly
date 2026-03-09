@@ -1,20 +1,28 @@
-import { IsString, IsOptional, IsNumber } from 'class-validator';
+import {
+    IsString,
+    IsOptional,
+    IsNumber,
+    IsIn,
+    IsObject,
+} from 'class-validator';
 
 export class CreateSignalDto {
-  @IsString()
-  symbol: string;
+    @IsString()
+    symbol: string;
 
-  @IsString()
-  signal: string;
+    @IsString()
+    @IsIn(['BUY', 'SELL', 'HOLD'])
+    signal: string;
 
-  @IsOptional()
-  @IsString()
-  provider?: string;
+    @IsOptional()
+    @IsString()
+    provider?: string;
 
-  @IsOptional()
-  @IsNumber()
-  score?: number;
+    @IsOptional()
+    @IsNumber()
+    score?: number;
 
-  @IsOptional()
-  metadata?: any;
+    @IsOptional()
+    @IsObject()
+    metadata?: Record<string, unknown>;
 }

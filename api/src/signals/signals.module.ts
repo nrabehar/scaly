@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { SignalsService } from './signals.service';
 import { SignalsController } from './signals.controller';
-import { PrismaService } from '../persistence/prisma.service';
+import { ScalpService } from './scalp.service';
+import { PrismaModule } from '../persistence/prisma.module';
 
 @Module({
-  imports: [],
-  controllers: [SignalsController],
-  providers: [SignalsService, PrismaService],
-  exports: [SignalsService],
+    imports: [PrismaModule],
+    controllers: [SignalsController],
+    providers: [SignalsService, ScalpService],
+    exports: [SignalsService, ScalpService],
 })
 export class SignalsModule {}

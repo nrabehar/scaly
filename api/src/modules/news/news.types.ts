@@ -1,4 +1,11 @@
-export type NewsAsset = 'XAU' | 'BTC' | 'ETH' | 'MACRO';
+export type NewsAsset =
+    | 'XAU'
+    | 'BTC'
+    | 'ETH'
+    | 'MACRO'
+    | 'OIL'
+    | 'EQUITIES'
+    | 'FOREX';
 
 export interface INew {
     id: string;

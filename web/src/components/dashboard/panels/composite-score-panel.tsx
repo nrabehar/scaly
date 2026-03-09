@@ -3,79 +3,245 @@ import { useTranslation } from 'react-i18next';
 import { useMarket } from '@/contexts/market.context';
 import { useHistory } from '@/hooks/use-market-data';
 import { useIndicators } from '@/hooks/use-indicators';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Target } from 'lucide-react';
 import type { Candle } from '@/types/market';
 
+/** SVG semicircle gauge with needle — score 0–100 */
+function NeedleGauge({ score, color }: { score: number; color: string }) {
+	const cx = 96,
+		cy = 96,
+		r = 72;
+	const arcLen = Math.PI * r; // half circle circumference
+	const offset = arcLen - (score / 100) * arcLen;
+
+	// Needle from center towards arc — angle mapped 180°→0° left to right
+	const angleDeg = 180 - score * 1.8;
+	const angleRad = (angleDeg * Math.PI) / 180;
+	const nLen = 54;
+	const nx = cx + nLen * Math.cos(angleRad);
+	const ny = cy - nLen * Math.sin(angleRad);
+
+	const gaugePath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
+
+	return (
+		<svg
+			viewBox="0 0 192 110"
+			className="w-full"
+			style={{ maxHeight: 110 }}
+		>
+			<defs>
+				<linearGradient
+					id="gTrack"
+					x1="0%"
+					y1="0%"
+					x2="100%"
+					y2="0%"
+				>
+					<stop
+						offset="0%"
+						stopColor="#ef4444"
+						stopOpacity={0.35}
+					/>
+					<stop
+						offset="50%"
+						stopColor="#6b7280"
+						stopOpacity={0.25}
+					/>
+					<stop
+						offset="100%"
+						stopColor="#22c55e"
+						stopOpacity={0.35}
+					/>
+				</linearGradient>
+			</defs>
+			{/* Track */}
+			<path
+				d={gaugePath}
+				fill="none"
+				stroke="url(#gTrack)"
+				strokeWidth={10}
+			/>
+			{/* Progress */}
+			<path
+				d={gaugePath}
+				fill="none"
+				stroke={color}
+				strokeWidth={10}
+				strokeDasharray={arcLen}
+				strokeDashoffset={offset}
+				strokeLinecap="round"
+				style={{
+					transition: 'stroke-dashoffset 0.5s ease, stroke 0.3s',
+				}}
+			/>
+			{/* Glow */}
+			<path
+				d={gaugePath}
+				fill="none"
+				stroke={color}
+				strokeWidth={18}
+				strokeDasharray={arcLen}
+				strokeDashoffset={offset}
+				strokeOpacity={0.12}
+			/>
+			{/* Needle */}
+			<line
+				x1={cx}
+				y1={cy}
+				x2={nx}
+				y2={ny}
+				stroke={color}
+				strokeWidth={2.5}
+				strokeLinecap="round"
+				style={{ transition: 'all 0.5s ease' }}
+			/>
+			<circle
+				cx={cx}
+				cy={cy}
+				r={7}
+				fill="hsl(var(--card))"
+				stroke={color}
+				strokeWidth={2}
+			/>
+			<circle cx={cx} cy={cy} r={3} fill={color} />
+			{/* Labels */}
+			<text
+				x={cx - r - 6}
+				y={cy + 14}
+				fontSize={9}
+				fill="#ef4444"
+				textAnchor="middle"
+				fontWeight="700"
+			>
+				SELL
+			</text>
+			<text
+				x={cx + r + 6}
+				y={cy + 14}
+				fontSize={9}
+				fill="#22c55e"
+				textAnchor="middle"
+				fontWeight="700"
+			>
+				BUY
+			</text>
+		</svg>
+	);
+}
+
+const BLOCK_LABELS: Record<string, string> = {
+	trend: 'Trend',
+	momentum: 'Momentum',
+	volume: 'Volume',
+	volatility: 'Volatility',
+	structure: 'Structure',
+	confirmation: 'MTF',
+};
+
 export function CompositeScorePanel() {
-  const { t } = useTranslation();
-  const { currentSymbol, currentTimeframe } = useMarket();
-  const { data: historyResp } = useHistory(currentSymbol, currentTimeframe, 200);
-  const candles: Candle[] = useMemo(() => (historyResp as any)?.data ?? historyResp ?? [], [historyResp]);
-  const ind = useIndicators(candles);
+	const { t } = useTranslation();
+	const { currentSymbol, currentTimeframe } = useMarket();
+	const { data: historyResp } = useHistory(
+		currentSymbol,
+		currentTimeframe,
+		200,
+	);
+	const candles: Candle[] = useMemo(
+		() => (historyResp as any)?.data ?? historyResp ?? [],
+		[historyResp],
+	);
+	const ind = useIndicators(candles);
 
-  const score = ind?.proCombo?.score ?? 0;
-  const direction = ind?.proCombo?.direction ?? 'NEUTRAL';
-  const confidence = ind?.proCombo?.confidence ?? 0;
+	const combo = ind?.proCombo;
+	const score = combo?.score ?? 50; // 0–100
+	const direction = combo?.direction ?? 'NEUTRAL';
+	const blocks = combo?.blocks ?? {};
 
-  // Gauge: half-pie from -100 to +100
-  const normalized = (score + 100) / 2; // 0–100
-  const gaugeData = [
-    { value: normalized },
-    { value: 100 - normalized },
-  ];
+	const gaugeColor =
+		score > 60 ? '#22c55e' : score < 40 ? '#ef4444' : '#6b7280';
 
-  const gaugeColor = score > 30 ? '#26a65b' : score < -30 ? '#ef4444' : '#6b7280';
+	return (
+		<Card>
+			<CardHeader className="pb-1 pt-3 px-4">
+				<CardTitle className="text-sm font-medium flex items-center gap-2">
+					<Target className="h-4 w-4" />
+					{t('dashboard.compositeScore')}
+				</CardTitle>
+			</CardHeader>
+			<CardContent className="px-3 pb-3">
+				{/* Gauge */}
+				<div className="relative">
+					<NeedleGauge score={score} color={gaugeColor} />
+					<div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-center pointer-events-none">
+						<div
+							className="text-xl font-black font-mono tabular-nums leading-tight"
+							style={{ color: gaugeColor }}
+						>
+							{score.toFixed(0)}
+						</div>
+						<div
+							className="text-[9px] uppercase tracking-widest font-semibold"
+							style={{ color: gaugeColor }}
+						>
+							{direction}
+						</div>
+					</div>
+				</div>
 
-  return (
-    <Card>
-      <CardHeader className="pb-1 pt-3 px-4">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Target className="h-4 w-4" />
-          {t('dashboard.compositeScore')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-4 pb-3 flex flex-col items-center">
-        <div className="w-full h-[120px] min-w-[100px] relative overflow-hidden">
-          <ResponsiveContainer width="99%" height={118}>
-            <PieChart>
-              <Pie
-                data={gaugeData}
-                cx="50%"
-                cy="90%"
-                startAngle={180}
-                endAngle={0}
-                innerRadius="60%"
-                outerRadius="100%"
-                dataKey="value"
-                stroke="none"
-              >
-                <Cell fill={gaugeColor} />
-                <Cell fill="hsl(var(--muted))" />
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
-            <div className="text-2xl font-bold font-mono tabular-nums" style={{ color: gaugeColor }}>
-              {score > 0 ? '+' : ''}{score.toFixed(0)}
-            </div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              {direction}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 mt-2 text-xs">
-          <span className="text-muted-foreground">{t('indicators.confidence')}</span>
-          <div className="flex-1 bg-muted rounded-full h-1.5">
-            <div
-              className="h-1.5 rounded-full bg-blue-500 transition-all"
-              style={{ width: `${confidence}%` }}
-            />
-          </div>
-          <span className="font-mono tabular-nums">{confidence.toFixed(0)}%</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
+				{/* Block sub-scores */}
+				{Object.keys(blocks).length > 0 && (
+					<div className="grid grid-cols-3 gap-1 mt-2">
+						{Object.entries(blocks).map(
+							([key, val]: [string, any]) => {
+								const s = val?.score ?? 50;
+								const sig = val?.signal ?? 'NEUTRAL';
+								const c =
+									sig === 'BUY'
+										? 'text-buy'
+										: sig === 'SELL'
+											? 'text-sell'
+											: 'text-muted-foreground';
+								return (
+									<div
+										key={key}
+										className="flex flex-col items-center gap-0.5 rounded border border-border/50 px-1 py-1 bg-muted/20"
+									>
+										<span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider">
+											{BLOCK_LABELS[key] ?? key}
+										</span>
+										<div className="w-full bg-muted rounded-full h-1">
+											<div
+												className="h-1 rounded-full transition-all"
+												style={{
+													width: `${s}%`,
+													background:
+														sig === 'BUY'
+															? '#22c55e'
+															: sig ===
+																  'SELL'
+																? '#ef4444'
+																: '#6b7280',
+												}}
+											/>
+										</div>
+										<span
+											className={`text-[9px] font-bold tabular-nums font-mono ${c}`}
+										>
+											{s}
+										</span>
+									</div>
+								);
+							},
+						)}
+					</div>
+				)}
+			</CardContent>
+		</Card>
+	);
 }
