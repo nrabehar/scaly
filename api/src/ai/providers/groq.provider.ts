@@ -41,7 +41,7 @@ export class GroqProvider {
                     },
                     {
                         headers: { Authorization: `Bearer ${apiKey}` },
-                        timeout: 15000,
+                        timeout: 30000,
                     },
                 ),
             );

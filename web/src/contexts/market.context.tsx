@@ -6,7 +6,7 @@ const MarketContext = createContext<MarketContextState | null>(null);
 export function MarketProvider({ children }: { children: ReactNode }) {
   const [currentSymbol, setCurrentSymbol] = useState<SymbolType>('BTC/USD');
   const [currentTimeframe, setCurrentTimeframe] = useState<TimeframeType>('1min');
-  const [selectedAiModel, setSelectedAiModel] = useState<string>('gemini');
+  const [selectedAiModel, setSelectedAiModel] = useState<string>('auto');
 
   return (
     <MarketContext.Provider

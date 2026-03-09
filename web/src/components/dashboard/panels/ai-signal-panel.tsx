@@ -33,7 +33,13 @@ import {
 } from 'lucide-react';
 import type { ScalpResult } from '@/types/market';
 
-const AI_MODELS = ['gemini', 'groq', 'openrouter', 'ollama'] as const;
+const AI_MODELS = [
+	'auto',
+	'gemini',
+	'groq',
+	'openrouter',
+	'ollama',
+] as const;
 
 const convictionClass = (v?: string) => {
 	if (!v) return '';
